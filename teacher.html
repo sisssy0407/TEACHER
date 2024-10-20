@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Teacher Dashboard</title>
+    <link rel="stylesheet" href="teacher.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .profile-section {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #4caf50;
+        }
+        .profile-section h2 {
+            margin: 0;
+            color: #333;
+        }
+        .profile-section p {
+            margin: 5px 0;
+            color: #666;
+        }
+        .logout-button {
+            padding: 10px 20px;
+            background-color: #4caf50;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .logout-button:hover {
+            background-color: #45a049;
+        }
+        .content-section {
+            display: flex;
+            gap: 20px;
+        }
+        .box {
+            flex: 1;
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .box h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        #notification-list {
+            list-style: none;
+            padding: 0;
+        }
+        #notification-list li {
+            background-color: #fafafa;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            position: relative;
+        }
+        #notification-list li:hover {
+            background-color: #f1f1f1;
+        }
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fff;
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover,
+        .close:focus {
+            color: #000;
+            text-decoration: none;
+        }
+        .modal-buttons {
+            margin-top: 20px;
+            text-align: right;
+        }
+        .modal-buttons button {
+            background-color: #4caf50;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 15px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        .modal-buttons button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="profile-section">
+            <img id="avatar" class="avatar" src="" alt="Teacher Avatar">
+            <div>
+                <h2 id="name" class="name"></h2>
+                <p>Email: <span id="teacher-email"></span></p>
+            </div>
+            <button id="logout" class="logout-button">Logout</button>
+        </div>
+        <div class="content-section">
+            <div class="box notifications">
+                <h3>Notifications</h3>
+                <ul id="notification-list"></ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="notification-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <p id="modal-description"></p>
+            <div class="modal-buttons">
+                <button id="verify-button">Verified</button>
+                <button id="reject-button">Not Verified</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function loadTeacherData() {
+            const teacherEmail = 'princessharbie04@gmail.com'; // Palitan ito ng aktwal na email ng guro
+            document.getElementById('teacher-email').textContent = teacherEmail;
+            localStorage.setItem('teacher-email', teacherEmail);
+        }
+
+        function loadNotifications() {
+            const teacherEmail = localStorage.getItem('teacher-email');
+            let notifications = JSON.parse(localStorage.getItem('notifications')) || [];
+
+            // Filter out notifications with date 16 or 17
+            notifications = notifications.filter(notification => {
+                const notificationDate = new Date(notification.date);
+                return notificationDate.getDate() !== 16 && notificationDate.getDate() !== 17; // Tanggalin ang mga petsang 16 at 17
+            });
+
+            // Sort notifications
+            notifications.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            const notificationList = document.getElementById('notification-list');
+            const modal = document.getElementById('notification-modal');
+            const modalDescription = document.getElementById('modal-description');
+            const closeBtn = document.querySelector('.close');
+            const verifyBtn = document.getElementById('verify-button');
+            const rejectBtn = document.getElementById('reject-button');
+
+            notificationList.innerHTML = '';
+
+            notifications
+                .filter(notification => notification.email === teacherEmail)
+                .forEach(notification => {
+                    const listItem = document.createElement('li');
+
+                    // I-format ang petsa
+                    const notificationDate = notification.date ? new Date(notification.date) : new Date();
+                    const formattedDate = notificationDate.toLocaleDateString('en-US', {
+                        year: 'numeric', month: 'long', day: 'numeric'
+                    });
+
+                    listItem.innerHTML = `
+                        <strong>${notification.message || 'No message available'}</strong><br>
+                        <small>${formattedDate}</small><br>
+                        <span>${notification.studentName || 'Princess Harbbie M. Mejos'}</span><br>
+                        <span>${notification.description || 'No description available'}</span>
+                    `;
+                    
+                    listItem.addEventListener('click', () => {
+                        modal.style.display = 'block';
+                        modalDescription.textContent = `Description: ${notification.description || 'No description available'}`;
+                        verifyBtn.onclick = () => updateNotificationStatus(notification.id, 'Verified');
+                        rejectBtn.onclick = () => updateNotificationStatus(notification.id, 'Not Verified');
+                    });
+
+                    notificationList.appendChild(listItem);
+                });
+
+            closeBtn.addEventListener('click', () => {
+                modal.style.display = 'none';
+            });
+
+            window.addEventListener('click', (event) => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
+
+        function updateNotificationStatus(notificationId, status) {
+            let notifications = JSON.parse(localStorage.getItem('notifications')) || [];
+            notifications = notifications.map(notification => {
+                if (notification.id === notificationId) {
+                    notification.status = status;
+                }
+                return notification;
+            });
+            localStorage.setItem('notifications', JSON.stringify(notifications));
+            document.getElementById('notification-modal').style.display = 'none';
+        }
+
+        // I-initialize ang page
+        loadTeacherData();
+        loadNotifications();
+    </script>
+</body>
+</html>
